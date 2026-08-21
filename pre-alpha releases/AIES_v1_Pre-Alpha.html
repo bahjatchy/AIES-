@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AIES — Advanced Image Editing Software</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    width: 100%;
+    height: 100%;
+    font-family: "Times New Roman", Times, serif;
+    background: #111;
+    color: #f2f2f2;
+  }
+  body {
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .app {
+    width: min(1100px, 96vw);
+    height: min(760px, 94vh);
+    min-height: 560px;
+    background: #181818;
+    border: 2px solid #3b3b3b;
+    box-shadow: 0 20px 70px rgba(0,0,0,.55);
+    display: flex;
+    flex-direction: column;
+  }
+
+  header {
+    padding: 18px 24px 14px;
+    border-bottom: 1px solid #3b3b3b;
+    background: #151515;
+  }
+  .brand {
+    font-size: clamp(34px, 5vw, 54px);
+    font-weight: bold;
+    line-height: 1;
+    letter-spacing: 1px;
+  }
+  .subtitle {
+    margin-top: 5px;
+    font-size: 15px;
+  }
+
+  .landing, .editor {
+    flex: 1;
+    min-height: 0;
+  }
+
+  .landing {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 30px;
+  }
+
+  .format-box {
+    width: min(620px, 92%);
+    border: 1px solid #444;
+    padding: 34px;
+    background: #1d1d1d;
+  }
+  .format-box h2 {
+    margin: 0 0 25px;
+    font-size: 27px;
+  }
+  .format-buttons {
+    display: flex;
+    gap: 18px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  button {
+    font-family: "Times New Roman", Times, serif;
+    cursor: pointer;
+  }
+  .format-btn {
+    min-width: 180px;
+    padding: 16px 28px;
+    font-size: 21px;
+    font-weight: bold;
+    color: #111;
+    background: #eee;
+    border: 2px solid #777;
+  }
+  .format-btn:hover { background: #fff; }
+  .format-btn:active { transform: translateY(1px); }
+
+  .copyright {
+    position: absolute;
+    right: 14px;
+    bottom: 10px;
+    font-size: 11px;
+    opacity: .52;
+    text-align: right;
+  }
+
+  .editor {
+    display: none;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .editor.active { display: flex; }
+
+  .editor-top {
+    padding: 8px 14px;
+    border-bottom: 1px solid #383838;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+  }
+  .editor-actions {
+    display: flex;
+    gap: 8px;
+  }
+  .small-btn {
+    padding: 6px 10px;
+    color: #eee;
+    background: #252525;
+    border: 1px solid #555;
+    font-size: 13px;
+  }
+  .small-btn:hover { background: #303030; }
+
+  .workspace {
+    flex: 1;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: 1fr 310px;
+  }
+
+  .preview {
+    position: relative;
+    min-width: 0;
+    min-height: 0;
+    background:
+      linear-gradient(45deg, #202020 25%, transparent 25%),
+      linear-gradient(-45deg, #202020 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, #202020 75%),
+      linear-gradient(-45deg, transparent 75%, #202020 75%);
+    background-size: 28px 28px;
+    background-position: 0 0, 0 14px, 14px -14px, -14px 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: auto;
+    padding: 18px;
+  }
+  #canvas {
+    display: none;
+    max-width: none;
+    max-height: none;
+    box-shadow: 0 5px 24px rgba(0,0,0,.55);
+  }
+  .preview-empty {
+    color: #aaa;
+    font-size: 18px;
+  }
+
+  .controls {
+    border-left: 1px solid #3b3b3b;
+    background: #151515;
+    overflow-y: auto;
+    padding: 18px;
+  }
+  .controls h2 {
+    margin: 0 0 17px;
+    font-size: 23px;
+  }
+  .control {
+    margin-bottom: 17px;
+  }
+  .control-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 6px;
+    font-size: 17px;
+    font-weight: bold;
+  }
+  .gauge {
+    min-width: 52px;
+    padding: 2px 6px;
+    text-align: right;
+    font-weight: normal;
+    border: 1px solid #555;
+    background: #202020;
+  }
+
+  input[type="range"] {
+    width: 100%;
+    height: 24px;
+    accent-color: #ffd400;
+    cursor: pointer;
+  }
+  input[type="range"]::-webkit-slider-runnable-track {
+    height: 7px;
+    background: #555;
+    border-radius: 0;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    margin-top: -5.5px;
+    background: #ffd400;
+    border: 1px solid #111;
+    border-radius: 50%;
+  }
+  input[type="range"]::-moz-range-track {
+    height: 7px;
+    background: #555;
+  }
+  input[type="range"]::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    background: #ffd400;
+    border: 1px solid #111;
+    border-radius: 50%;
+  }
+
+  .reset {
+    width: 100%;
+    padding: 10px;
+    font-size: 16px;
+    background: #242424;
+    color: #eee;
+    border: 1px solid #555;
+    margin-top: 4px;
+  }
+  .reset:hover { background: #303030; }
+
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.72);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    padding: 20px;
+  }
+  .modal {
+    position: relative;
+    width: min(700px, 94vw);
+    background: #181818;
+    border: 2px solid #555;
+    padding: 34px 38px 32px;
+    box-shadow: 0 25px 80px rgba(0,0,0,.7);
+  }
+  .modal h1 {
+    margin: 0 45px 24px 0;
+    font-size: clamp(27px, 4vw, 40px);
+    line-height: 1.1;
+  }
+  .modal p {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.55;
+    color: #d2d2d2;
+  }
+  .close {
+    position: absolute;
+    top: 10px;
+    right: 13px;
+    border: 0;
+    background: transparent;
+    color: #e10000;
+    font-size: 35px;
+    line-height: 1;
+    font-weight: bold;
+    padding: 0 5px;
+  }
+  .close:hover { color: #ff3333; }
+
+  .message-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.58);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 20;
+    padding: 20px;
+  }
+  .message {
+    width: min(550px, 94vw);
+    background: #181818;
+    border: 2px solid #555;
+    padding: 26px;
+    box-shadow: 0 20px 60px rgba(0,0,0,.7);
+  }
+  .message p {
+    margin: 0 0 20px;
+    line-height: 1.45;
+    font-size: 16px;
+  }
+  .message button {
+    padding: 8px 18px;
+    background: #eee;
+    border: 1px solid #777;
+    font-size: 15px;
+  }
+
+  @media (max-width: 760px) {
+    .app { height: 96vh; min-height: 0; }
+    .workspace { grid-template-columns: 1fr; grid-template-rows: 1fr auto; }
+    .controls {
+      border-left: 0;
+      border-top: 1px solid #3b3b3b;
+      max-height: 43%;
+    }
+    .preview { min-height: 240px; }
+    .format-box { padding: 25px 18px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <header>
+    <div class="brand">AIES</div>
+    <div class="subtitle">ADVANCED IMAGE EDITING SOFTWARE</div>
+  </header>
+
+  <main class="landing" id="landing">
+    <div class="format-box">
+      <h2>Select an image format</h2>
+      <div class="format-buttons">
+        <button class="format-btn" id="pngButton">PNG</button>
+        <button class="format-btn" id="jpgButton">JPG/JPEG</button>
+      </div>
+    </div>
+    <div class="copyright">Rights are not reserved by Bahjat Chowdhury. Modify as you will (2026)</div>
+    <input id="pngInput" type="file" accept=".png,image/png" hidden>
+    <input id="jpgInput" type="file" accept=".jpg,.jpeg,image/jpeg" hidden>
+  </main>
+
+  <section class="editor" id="editor">
+    <div class="editor-top">
+      <span id="fileInfo">AIES — image loaded</span>
+      <div class="editor-actions">
+        <button class="small-btn" id="newImage">NEW IMAGE</button>
+        <button class="small-btn" id="saveImage">EXPORT JPEG</button>
+      </div>
+    </div>
+
+    <div class="workspace">
+      <div class="preview" id="preview">
+        <div class="preview-empty" id="emptyText">No image loaded.</div>
+        <canvas id="canvas"></canvas>
+      </div>
+
+      <aside class="controls">
+        <h2>MANIPULATION</h2>
+
+        <div class="control">
+          <div class="control-head"><span>SATURATION</span><span class="gauge" id="saturationValue">100</span></div>
+          <input id="saturation" type="range" min="0" max="200" value="100">
+        </div>
+
+        <div class="control">
+          <div class="control-head"><span>HUE</span><span class="gauge" id="hueValue">0°</span></div>
+          <input id="hue" type="range" min="-180" max="180" value="0">
+        </div>
+
+        <div class="control">
+          <div class="control-head"><span>TEMPERATURE</span><span class="gauge" id="temperatureValue">0</span></div>
+          <input id="temperature" type="range" min="-100" max="100" value="0">
+        </div>
+
+        <div class="control">
+          <div class="control-head"><span>SHARPNESS</span><span class="gauge" id="sharpnessValue">0</span></div>
+          <input id="sharpness" type="range" min="0" max="100" value="0">
+        </div>
+
+        <div class="control">
+          <div class="control-head"><span>CONTRAST</span><span class="gauge" id="contrastValue">0</span></div>
+          <input id="contrast" type="range" min="-100" max="100" value="0">
+        </div>
+
+        <div class="control">
+          <div class="control-head"><span>BRIGHTNESS</span><span class="gauge" id="brightnessValue">0</span></div>
+          <input id="brightness" type="range" min="-100" max="100" value="0">
+        </div>
+
+        <button class="reset" id="reset">RESET ALL VALUES</button>
+      </aside>
+    </div>
+  </section>
+</div>
+
+<div class="modal-backdrop" id="welcomeModal">
+  <div class="modal">
+    <button class="close" id="closeModal" aria-label="Close">×</button>
+    <h1>Welcome to AIES version, 1.0 (Pre-Alpha)</h1>
+    <p>Software has been intended for free use. Modifications are encouraged. The base model can be found and modified as users will. AIES does not track you. It doesn't save your workflow to the cloud. What leaves your device to enter our software, takes a new form after leaving. No external force is applied against the user's needs.</p>
+  </div>
+</div>
+
+<div class="message-backdrop" id="messageBackdrop">
+  <div class="message">
+    <p id="messageText"></p>
+    <button id="messageClose">CLOSE</button>
+  </div>
+</div>
+
+<script>
+(() => {
+  const landing = document.getElementById("landing");
+  const editor = document.getElementById("editor");
+  const pngButton = document.getElementById("pngButton");
+  const jpgButton = document.getElementById("jpgButton");
+  const pngInput = document.getElementById("pngInput");
+  const jpgInput = document.getElementById("jpgInput");
+  const canvas = document.getElementById("canvas");
+  const ctx = canvas.getContext("2d", { willReadFrequently: true });
+  const emptyText = document.getElementById("emptyText");
+  const fileInfo = document.getElementById("fileInfo");
+
+  const sliders = {
+    saturation: document.getElementById("saturation"),
+    hue: document.getElementById("hue"),
+    temperature: document.getElementById("temperature"),
+    sharpness: document.getElementById("sharpness"),
+    contrast: document.getElementById("contrast"),
+    brightness: document.getElementById("brightness")
+  };
+
+  const gauges = {
+    saturation: document.getElementById("saturationValue"),
+    hue: document.getElementById("hueValue"),
+    temperature: document.getElementById("temperatureValue"),
+    sharpness: document.getElementById("sharpnessValue"),
+    contrast: document.getElementById("contrastValue"),
+    brightness: document.getElementById("brightnessValue")
+  };
+
+  let sourceImage = null;
+  let sourceType = null;
+  let sourceName = "";
+
+  function showMessage(text) {
+    document.getElementById("messageText").textContent = text;
+    document.getElementById("messageBackdrop").style.display = "flex";
+  }
+
+  document.getElementById("messageClose").addEventListener("click", () => {
+    document.getElementById("messageBackdrop").style.display = "none";
+  });
+
+  document.getElementById("closeModal").addEventListener("click", () => {
+    document.getElementById("welcomeModal").style.display = "none";
+  });
+
+  // The one-way valves are deliberately strict.
+  pngButton.addEventListener("click", () => pngInput.click());
+  jpgButton.addEventListener("click", () => jpgInput.click());
+
+  function isPNG(file) {
+    return file && (file.type === "image/png" || /\.png$/i.test(file.name));
+  }
+
+  function isJPG(file) {
+    return file && (file.type === "image/jpeg" || /\.(jpe?g)$/i.test(file.name));
+  }
+
+  function handleFile(file, expected) {
+    if (!file) return;
+
+    const valid = expected === "png" ? isPNG(file) : isJPG(file);
+
+    if (!valid) {
+      showMessage("*Developer has instructed one way valve method. Please proceed to another format.");
+      return;
+    }
+
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+
+    img.onload = () => {
+      sourceImage = img;
+      sourceType = expected;
+      sourceName = file.name;
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      canvas.style.display = "block";
+      emptyText.style.display = "none";
+      landing.style.display = "none";
+      editor.classList.add("active");
+      fileInfo.textContent = `${file.name} — ${img.naturalWidth} × ${img.naturalHeight}px`;
+      resetValues();
+      render();
+      URL.revokeObjectURL(url);
+    };
+
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      showMessage("AIES could not decode this image on the current device/browser.");
+    };
+
+    img.src = url;
+  }
+
+  pngInput.addEventListener("change", () => {
+    handleFile(pngInput.files[0], "png");
+    pngInput.value = "";
+  });
+
+  jpgInput.addEventListener("change", () => {
+    handleFile(jpgInput.files[0], "jpg");
+    jpgInput.value = "";
+  });
+
+  function resetValues() {
+    sliders.saturation.value = 100;
+    sliders.hue.value = 0;
+    sliders.temperature.value = 0;
+    sliders.sharpness.value = 0;
+    sliders.contrast.value = 0;
+    sliders.brightness.value = 0;
+    updateGauges();
+  }
+
+  function updateGauges() {
+    gauges.saturation.textContent = sliders.saturation.value;
+    gauges.hue.textContent = sliders.hue.value + "°";
+    gauges.temperature.textContent = sliders.temperature.value;
+    gauges.sharpness.textContent = sliders.sharpness.value;
+    gauges.contrast.textContent = sliders.contrast.value;
+    gauges.brightness.textContent = sliders.brightness.value;
+  }
+
+  Object.values(sliders).forEach(s => {
+    s.addEventListener("input", () => {
+      updateGauges();
+      render();
+    });
+  });
+
+  document.getElementById("reset").addEventListener("click", () => {
+    resetValues();
+    render();
+  });
+
+  document.getElementById("newImage").addEventListener("click", () => {
+    sourceImage = null;
+    sourceType = null;
+    sourceName = "";
+    editor.classList.remove("active");
+    landing.style.display = "flex";
+    canvas.style.display = "none";
+    emptyText.style.display = "block";
+    resetValues();
+  });
+
+  function clamp(v) {
+    return Math.max(0, Math.min(255, v));
+  }
+
+  function rgbToHsl(r, g, b) {
+    r /= 255; g /= 255; b /= 255;
+    const max = Math.max(r,g,b), min = Math.min(r,g,b);
+    let h = 0, s = 0;
+    const l = (max + min) / 2;
+    const d = max - min;
+
+    if (d !== 0) {
+      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+      switch(max) {
+        case r: h = (g-b)/d + (g < b ? 6 : 0); break;
+        case g: h = (b-r)/d + 2; break;
+        case b: h = (r-g)/d + 4; break;
+      }
+      h /= 6;
+    }
+    return [h,s,l];
+  }
+
+  function hue2rgb(p,q,t) {
+    if (t < 0) t += 1;
+    if (t > 1) t -= 1;
+    if (t < 1/6) return p + (q-p)*6*t;
+    if (t < 1/2) return q;
+    if (t < 2/3) return p + (q-p)*(2/3-t)*6;
+    return p;
+  }
+
+  function hslToRgb(h,s,l) {
+    let r,g,b;
+    if (s === 0) {
+      r = g = b = l;
+    } else {
+      const q = l < 0.5 ? l*(1+s) : l+s-l*s;
+      const p = 2*l-q;
+      r = hue2rgb(p,q,h+1/3);
+      g = hue2rgb(p,q,h);
+      b = hue2rgb(p,q,h-1/3);
+    }
+    return [r*255,g*255,b*255];
+  }
+
+  function applyBasicAdjustments(data, values) {
+    const saturation = Number(values.saturation) / 100;
+    const hueShift = Number(values.hue) / 360;
+    const temperature = Number(values.temperature);
+    const contrast = Number(values.contrast);
+    const brightness = Number(values.brightness);
+
+    // Contrast factor based around 0.
+    const contrastFactor = (259 * (contrast + 255)) / (255 * (259 - contrast));
+
+    for (let i = 0; i < data.length; i += 4) {
+      let r = data[i], g = data[i+1], b = data[i+2];
+
+      let [h,s,l] = rgbToHsl(r,g,b);
+      s = Math.max(0, Math.min(1, s * saturation));
+      h = (h + hueShift) % 1;
+      if (h < 0) h += 1;
+      [r,g,b] = hslToRgb(h,s,l);
+
+      // Temperature: warm/cool balance.
+      const t = temperature / 100;
+      r += 38 * t;
+      b -= 38 * t;
+      g += 9 * t;
+
+      // Brightness.
+      r += brightness * 2.55;
+      g += brightness * 2.55;
+      b += brightness * 2.55;
+
+      // Contrast.
+      r = contrastFactor * (r - 128) + 128;
+      g = contrastFactor * (g - 128) + 128;
+      b = contrastFactor * (b - 128) + 128;
+
+      data[i] = clamp(r);
+      data[i+1] = clamp(g);
+      data[i+2] = clamp(b);
+    }
+  }
+
+  function sharpen(data, width, height, amount) {
+    if (amount <= 0) return;
+    const src = new Uint8ClampedArray(data);
+    const a = amount / 100;
+    // Simple 3x3 unsharp-mask approximation.
+    for (let y = 1; y < height - 1; y++) {
+      for (let x = 1; x < width - 1; x++) {
+        for (let c = 0; c < 3; c++) {
+          const idx = (y * width + x) * 4 + c;
+          const center = src[idx];
+          const neighbors =
+            src[((y-1)*width+x)*4+c] +
+            src[((y+1)*width+x)*4+c] +
+            src[(y*width+x-1)*4+c] +
+            src[(y*width+x+1)*4+c];
+          const blur = neighbors / 4;
+          data[idx] = clamp(center + (center - blur) * 1.6 * a);
+        }
+      }
+    }
+  }
+
+  function render() {
+    if (!sourceImage) return;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(sourceImage, 0, 0);
+
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    applyBasicAdjustments(imageData.data, {
+      saturation: sliders.saturation.value,
+      hue: sliders.hue.value,
+      temperature: sliders.temperature.value,
+      contrast: sliders.contrast.value,
+      brightness: sliders.brightness.value
+    });
+    sharpen(imageData.data, canvas.width, canvas.height, Number(sliders.sharpness.value));
+    ctx.putImageData(imageData, 0, 0);
+  }
+
+  document.getElementById("saveImage").addEventListener("click", () => {
+    if (!sourceImage) return;
+    // Export is intentionally JPEG as the common AIES output.
+    canvas.toBlob(blob => {
+      if (!blob) {
+        showMessage("AIES could not create the JPEG on this device/browser.");
+        return;
+      }
+      const a = document.createElement("a");
+      const base = sourceName.replace(/\.(png|jpe?g)$/i, "") || "AIES_EDIT";
+      a.href = URL.createObjectURL(blob);
+      a.download = base + "_AIES.jpg";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    }, "image/jpeg", 0.95);
+  });
+})();
+</script>
+</body>
+</html>
