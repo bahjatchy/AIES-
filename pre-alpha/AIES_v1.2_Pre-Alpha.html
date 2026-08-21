@@ -1,0 +1,1093 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AIES — Advanced Image Editing Software</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    width: 100%;
+    height: 100%;
+    font-family: "Times New Roman", Times, serif;
+    background: #111;
+    color: #f2f2f2;
+  }
+  body {
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .app {
+    width: min(1100px, 96vw);
+    height: min(760px, 94vh);
+    min-height: 560px;
+    background: #181818;
+    border: 2px solid #3b3b3b;
+    box-shadow: 0 20px 70px rgba(0,0,0,.55);
+    display: flex;
+    flex-direction: column;
+  }
+
+  header {
+    padding: 18px 24px 14px;
+    border-bottom: 1px solid #3b3b3b;
+    background: #151515;
+  }
+  .brand {
+    font-size: clamp(34px, 5vw, 54px);
+    font-weight: bold;
+    line-height: 1;
+    letter-spacing: 1px;
+  }
+  .subtitle {
+    margin-top: 5px;
+    font-size: 15px;
+  }
+
+  .landing, .editor {
+    flex: 1;
+    min-height: 0;
+  }
+
+  .landing {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 30px;
+  }
+
+  .format-box {
+    width: min(620px, 92%);
+    border: 1px solid #444;
+    padding: 34px;
+    background: #1d1d1d;
+  }
+  .format-box h2 {
+    margin: 0 0 25px;
+    font-size: 27px;
+  }
+  .format-buttons {
+    display: flex;
+    gap: 18px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  button {
+    font-family: "Times New Roman", Times, serif;
+    cursor: pointer;
+  }
+  .format-btn {
+    min-width: 180px;
+    padding: 16px 28px;
+    font-size: 21px;
+    font-weight: bold;
+    color: #111;
+    background: #eee;
+    border: 2px solid #777;
+  }
+  .format-btn:hover { background: #fff; }
+  .format-btn:active { transform: translateY(1px); }
+
+  .copyright {
+    position: absolute;
+    right: 14px;
+    bottom: 10px;
+    font-size: 11px;
+    opacity: .52;
+    text-align: right;
+  }
+
+  .editor {
+    display: none;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .editor.active { display: flex; }
+
+  .editor-top {
+    padding: 8px 14px;
+    border-bottom: 1px solid #383838;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+  }
+  .editor-actions {
+    display: flex;
+    gap: 8px;
+  }
+  .small-btn {
+    padding: 6px 10px;
+    color: #eee;
+    background: #252525;
+    border: 1px solid #555;
+    font-size: 13px;
+  }
+  .small-btn:hover { background: #303030; }
+
+  .workspace {
+    flex: 1;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: 1fr 310px;
+  }
+
+  .preview {
+    position: relative;
+    min-width: 0;
+    min-height: 0;
+    background:
+      linear-gradient(45deg, #202020 25%, transparent 25%),
+      linear-gradient(-45deg, #202020 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, #202020 75%),
+      linear-gradient(-45deg, transparent 75%, #202020 75%);
+    background-size: 28px 28px;
+    background-position: 0 0, 0 14px, 14px -14px, -14px 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: auto;
+    padding: 18px;
+  }
+  #canvas {
+    display: none;
+    max-width: none;
+    max-height: none;
+    box-shadow: 0 5px 24px rgba(0,0,0,.55);
+  }
+  .preview-empty {
+    color: #aaa;
+    font-size: 18px;
+  }
+
+  .controls {
+    border-left: 1px solid #3b3b3b;
+    background: #151515;
+    overflow-y: auto;
+    padding: 18px;
+  }
+  .controls h2 {
+    margin: 15px 0 12px;
+    font-size: 20px;
+    border-bottom: 1px dashed #444;
+    padding-bottom: 4px;
+  }
+  .controls h2:first-of-type {
+    margin-top: 0;
+  }
+  .control {
+    margin-bottom: 17px;
+  }
+  .control-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 6px;
+    font-size: 17px;
+    font-weight: bold;
+  }
+  .gauge {
+    min-width: 52px;
+    padding: 2px 6px;
+    text-align: right;
+    font-weight: normal;
+    border: 1px solid #555;
+    background: #202020;
+  }
+
+  input[type="range"] {
+    width: 100%;
+    height: 24px;
+    accent-color: #ffd400;
+    cursor: pointer;
+  }
+  input[type="range"]::-webkit-slider-runnable-track {
+    height: 7px;
+    background: #555;
+    border-radius: 0;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    margin-top: -5.5px;
+    background: #ffd400;
+    border: 1px solid #111;
+    border-radius: 50%;
+  }
+  input[type="range"]::-moz-range-track {
+    height: 7px;
+    background: #555;
+  }
+  input[type="range"]::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    background: #ffd400;
+    border: 1px solid #111;
+    border-radius: 50%;
+  }
+
+  .reset {
+    width: 100%;
+    padding: 10px;
+    font-size: 16px;
+    background: #242424;
+    color: #eee;
+    border: 1px solid #555;
+    margin-top: 14px;
+    margin-bottom: 14px;
+  }
+  .reset:hover { background: #303030; }
+
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.72);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    padding: 20px;
+  }
+  .modal {
+    position: relative;
+    width: min(700px, 94vw);
+    background: #181818;
+    border: 2px solid #555;
+    padding: 34px 38px 32px;
+    box-shadow: 0 25px 80px rgba(0,0,0,.7);
+  }
+  .modal h1 {
+    margin: 0 45px 24px 0;
+    font-size: clamp(27px, 4vw, 40px);
+    line-height: 1.1;
+  }
+  .modal p {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.55;
+    color: #d2d2d2;
+  }
+  .close {
+    position: absolute;
+    top: 10px;
+    right: 13px;
+    border: 0;
+    background: transparent;
+    color: #e10000;
+    font-size: 35px;
+    line-height: 1;
+    font-weight: bold;
+    padding: 0 5px;
+  }
+  .close:hover { color: #ff3333; }
+
+  .message-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.58);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 20;
+    padding: 20px;
+  }
+  .message {
+    width: min(550px, 94vw);
+    background: #181818;
+    border: 2px solid #555;
+    padding: 26px;
+    box-shadow: 0 20px 60px rgba(0,0,0,.7);
+  }
+  .message p {
+    margin: 0 0 20px;
+    line-height: 1.45;
+    font-size: 16px;
+  }
+  .message button {
+    padding: 8px 18px;
+    background: #eee;
+    border: 1px solid #777;
+    font-size: 15px;
+  }
+
+  @media (max-width: 760px) {
+    .app { height: 96vh; min-height: 0; }
+    .workspace { grid-template-columns: 1fr; grid-template-rows: 1fr auto; }
+    .controls {
+      border-left: 0;
+      border-top: 1px solid #3b3b3b;
+      max-height: 43%;
+    }
+    .preview { min-height: 240px; }
+    .format-box { padding: 25px 18px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <header>
+    <div class="brand">AIES</div>
+    <div class="subtitle">ADVANCED IMAGE EDITING SOFTWARE</div>
+  </header>
+
+  <main class="landing" id="landing">
+    <div class="format-box">
+      <h2>Select an image format</h2>
+      <div class="format-buttons">
+        <button class="format-btn" id="pngButton">PNG</button>
+        <button class="format-btn" id="jpgButton">JPG/JPEG</button>
+      </div>
+    </div>
+    <div class="copyright">Rights are not reserved by Bahjat Chowdhury. Modify as you will (2026)</div>
+    <input id="pngInput" type="file" accept=".png,image/png" hidden>
+    <input id="jpgInput" type="file" accept=".jpg,.jpeg,image/jpeg" hidden>
+  </main>
+
+  <section class="editor" id="editor">
+    <div class="editor-top">
+      <span id="fileInfo">AIES — image loaded</span>
+      <div class="editor-actions">
+        <button class="small-btn" id="newImage">NEW IMAGE</button>
+        <button class="small-btn" id="saveImage">EXPORT JPEG</button>
+      </div>
+    </div>
+
+    <div class="workspace">
+      <div class="preview" id="preview">
+        <div class="preview-empty" id="emptyText">No image loaded.</div>
+        <canvas id="canvas"></canvas>
+      </div>
+
+      <aside class="controls">
+        <h2>BASIC ADJUSTMENTS</h2>
+
+        <div class="control">
+          <div class="control-head"><span>SATURATION</span><span class="gauge" id="saturationValue">100</span></div>
+          <input id="saturation" type="range" min="0" max="200" value="100">
+        </div>
+
+        <div class="control">
+          <div class="control-head"><span>HUE</span><span class="gauge" id="hueValue">0°</span></div>
+          <input id="hue" type="range" min="-180" max="180" value="0">
+        </div>
+
+        <div class="control">
+          <div class="control-head"><span>TEMPERATURE</span><span class="gauge" id="temperatureValue">0</span></div>
+          <input id="temperature" type="range" min="-100" max="100" value="0">
+        </div>
+
+        <div class="control">
+          <div class="control-head"><span>SHARPNESS</span><span class="gauge" id="sharpnessValue">0</span></div>
+          <input id="sharpness" type="range" min="0" max="100" value="0">
+        </div>
+
+        <div class="control">
+          <div class="control-head"><span>CONTRAST</span><span class="gauge" id="contrastValue">0</span></div>
+          <input id="contrast" type="range" min="-100" max="100" value="0">
+        </div>
+
+        <div class="control">
+          <div class="control-head"><span>BRIGHTNESS</span><span class="gauge" id="brightnessValue">0</span></div>
+          <input id="brightness" type="range" min="-100" max="100" value="0">
+        </div>
+
+        <h2>ADVANCED MANIPULATION</h2>
+
+        <div class="control">
+          <div class="control-head"><span>POSTERIZE</span><span class="gauge" id="posterizeValue">1</span></div>
+          <input id="posterize" type="range" min="1" max="100" value="1">
+        </div>
+
+        <div class="control">
+          <div class="control-head"><span>THRESHOLD</span><span class="gauge" id="thresholdValue">1</span></div>
+          <input id="threshold" type="range" min="1" max="100" value="1">
+        </div>
+
+        <div class="control">
+          <div class="control-head"><span>INVERT</span><span class="gauge" id="invertValue">1</span></div>
+          <input id="invert" type="range" min="1" max="100" value="1">
+        </div>
+
+        <div class="control">
+          <div class="control-head"><span>SOLARIZE</span><span class="gauge" id="solarizeValue">1</span></div>
+          <input id="solarize" type="range" min="1" max="100" value="1">
+        </div>
+
+        <div class="control">
+          <div class="control-head"><span>EDGE DETECT</span><span class="gauge" id="edgeDetectValue">1</span></div>
+          <input id="edgeDetect" type="range" min="1" max="100" value="1">
+        </div>
+
+        <div class="control">
+          <div class="control-head"><span>DITHER</span><span class="gauge" id="ditherValue">1</span></div>
+          <input id="dither" type="range" min="1" max="100" value="1">
+        </div>
+
+        <div class="control">
+          <div class="control-head"><span>MOSAIC</span><span class="gauge" id="mosaicValue">1</span></div>
+          <input id="mosaic" type="range" min="1" max="100" value="1">
+        </div>
+
+        <div class="control">
+          <div class="control-head"><span>RGB SPLIT</span><span class="gauge" id="rgbSplitValue">1</span></div>
+          <input id="rgbSplit" type="range" min="1" max="100" value="1">
+        </div>
+
+        <div class="control">
+          <div class="control-head"><span>LENS DISTORTION</span><span class="gauge" id="lensDistortionValue">1</span></div>
+          <input id="lensDistortion" type="range" min="1" max="100" value="1">
+        </div>
+
+        <div class="control">
+          <div class="control-head"><span>FISH-EYE</span><span class="gauge" id="fishEyeValue">1</span></div>
+          <input id="fishEye" type="range" min="1" max="100" value="1">
+        </div>
+
+        <div class="control">
+          <div class="control-head"><span>PERSPECTIVE</span><span class="gauge" id="perspectiveValue">1</span></div>
+          <input id="perspective" type="range" min="1" max="100" value="1">
+        </div>
+
+        <div class="control">
+          <div class="control-head"><span>GLITCH</span><span class="gauge" id="glitchValue">1</span></div>
+          <input id="glitch" type="range" min="1" max="100" value="1">
+        </div>
+
+        <button class="reset" id="reset">RESET ALL VALUES</button>
+      </aside>
+    </div>
+  </section>
+</div>
+
+<div class="modal-backdrop" id="welcomeModal">
+  <div class="modal">
+    <button class="close" id="closeModal" aria-label="Close">×</button>
+    <h1>Welcome to AIES version, 1.2 (Pre-Alpha)</h1>
+    <p>Software has been intended for free use. Modifications are encouraged. The base model can be found and modified as users will. AIES does not track you. It doesn't save your workflow to the cloud. What leaves your device to enter our software, takes a new form after leaving. No external force is applied against the user's needs.</p>
+  </div>
+</div>
+
+<div class="message-backdrop" id="messageBackdrop">
+  <div class="message">
+    <p id="messageText"></p>
+    <button id="messageClose">CLOSE</button>
+  </div>
+</div>
+
+<script>
+(() => {
+  const landing = document.getElementById("landing");
+  const editor = document.getElementById("editor");
+  const pngButton = document.getElementById("pngButton");
+  const jpgButton = document.getElementById("jpgButton");
+  const pngInput = document.getElementById("pngInput");
+  const jpgInput = document.getElementById("jpgInput");
+  const canvas = document.getElementById("canvas");
+  const ctx = canvas.getContext("2d", { willReadFrequently: true });
+  const emptyText = document.getElementById("emptyText");
+  const fileInfo = document.getElementById("fileInfo");
+
+  const sliders = {
+    saturation: document.getElementById("saturation"),
+    hue: document.getElementById("hue"),
+    temperature: document.getElementById("temperature"),
+    sharpness: document.getElementById("sharpness"),
+    contrast: document.getElementById("contrast"),
+    brightness: document.getElementById("brightness"),
+    posterize: document.getElementById("posterize"),
+    threshold: document.getElementById("threshold"),
+    invert: document.getElementById("invert"),
+    solarize: document.getElementById("solarize"),
+    edgeDetect: document.getElementById("edgeDetect"),
+    dither: document.getElementById("dither"),
+    mosaic: document.getElementById("mosaic"),
+    rgbSplit: document.getElementById("rgbSplit"),
+    lensDistortion: document.getElementById("lensDistortion"),
+    fishEye: document.getElementById("fishEye"),
+    perspective: document.getElementById("perspective"),
+    glitch: document.getElementById("glitch")
+  };
+
+  const gauges = {
+    saturation: document.getElementById("saturationValue"),
+    hue: document.getElementById("hueValue"),
+    temperature: document.getElementById("temperatureValue"),
+    sharpness: document.getElementById("sharpnessValue"),
+    contrast: document.getElementById("contrastValue"),
+    brightness: document.getElementById("brightnessValue"),
+    posterize: document.getElementById("posterizeValue"),
+    threshold: document.getElementById("thresholdValue"),
+    invert: document.getElementById("invertValue"),
+    solarize: document.getElementById("solarizeValue"),
+    edgeDetect: document.getElementById("edgeDetectValue"),
+    dither: document.getElementById("ditherValue"),
+    mosaic: document.getElementById("mosaicValue"),
+    rgbSplit: document.getElementById("rgbSplitValue"),
+    lensDistortion: document.getElementById("lensDistortionValue"),
+    fishEye: document.getElementById("fishEyeValue"),
+    perspective: document.getElementById("perspectiveValue"),
+    glitch: document.getElementById("glitchValue")
+  };
+
+  let sourceImage = null;
+  let sourceType = null;
+  let sourceName = "";
+
+  function showMessage(text) {
+    document.getElementById("messageText").textContent = text;
+    document.getElementById("messageBackdrop").style.display = "flex";
+  }
+
+  document.getElementById("messageClose").addEventListener("click", () => {
+    document.getElementById("messageBackdrop").style.display = "none";
+  });
+
+  document.getElementById("closeModal").addEventListener("click", () => {
+    document.getElementById("welcomeModal").style.display = "none";
+  });
+
+  pngButton.addEventListener("click", () => pngInput.click());
+  jpgButton.addEventListener("click", () => jpgInput.click());
+
+  function isPNG(file) {
+    return file && (file.type === "image/png" || /\.png$/i.test(file.name));
+  }
+
+  function isJPG(file) {
+    return file && (file.type === "image/jpeg" || /\.(jpe?g)$/i.test(file.name));
+  }
+
+  function handleFile(file, expected) {
+    if (!file) return;
+
+    const valid = expected === "png" ? isPNG(file) : isJPG(file);
+
+    if (!valid) {
+      showMessage("*Developer has instructed one way valve method. Please proceed to another format.");
+      return;
+    }
+
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+
+    img.onload = () => {
+      sourceImage = img;
+      sourceType = expected;
+      sourceName = file.name;
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      canvas.style.display = "block";
+      emptyText.style.display = "none";
+      landing.style.display = "none";
+      editor.classList.add("active");
+      fileInfo.textContent = `${file.name} — ${img.naturalWidth} × ${img.naturalHeight}px`;
+      resetValues();
+      render();
+      URL.revokeObjectURL(url);
+    };
+
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      showMessage("AIES could not decode this image on the current device/browser.");
+    };
+
+    img.src = url;
+  }
+
+  pngInput.addEventListener("change", () => {
+    handleFile(pngInput.files[0], "png");
+    pngInput.value = "";
+  });
+
+  jpgInput.addEventListener("change", () => {
+    handleFile(jpgInput.files[0], "jpg");
+    jpgInput.value = "";
+  });
+
+  function resetValues() {
+    sliders.saturation.value = 100;
+    sliders.hue.value = 0;
+    sliders.temperature.value = 0;
+    sliders.sharpness.value = 0;
+    sliders.contrast.value = 0;
+    sliders.brightness.value = 0;
+    sliders.posterize.value = 1;
+    sliders.threshold.value = 1;
+    sliders.invert.value = 1;
+    sliders.solarize.value = 1;
+    sliders.edgeDetect.value = 1;
+    sliders.dither.value = 1;
+    sliders.mosaic.value = 1;
+    sliders.rgbSplit.value = 1;
+    sliders.lensDistortion.value = 1;
+    sliders.fishEye.value = 1;
+    sliders.perspective.value = 1;
+    sliders.glitch.value = 1;
+    updateGauges();
+  }
+
+  function updateGauges() {
+    gauges.saturation.textContent = sliders.saturation.value;
+    gauges.hue.textContent = sliders.hue.value + "°";
+    gauges.temperature.textContent = sliders.temperature.value;
+    gauges.sharpness.textContent = sliders.sharpness.value;
+    gauges.contrast.textContent = sliders.contrast.value;
+    gauges.brightness.textContent = sliders.brightness.value;
+    gauges.posterize.textContent = sliders.posterize.value;
+    gauges.threshold.textContent = sliders.threshold.value;
+    gauges.invert.textContent = sliders.invert.value;
+    gauges.solarize.textContent = sliders.solarize.value;
+    gauges.edgeDetect.textContent = sliders.edgeDetect.value;
+    gauges.dither.textContent = sliders.dither.value;
+    gauges.mosaic.textContent = sliders.mosaic.value;
+    gauges.rgbSplit.textContent = sliders.rgbSplit.value;
+    gauges.lensDistortion.textContent = sliders.lensDistortion.value;
+    gauges.fishEye.textContent = sliders.fishEye.value;
+    gauges.perspective.textContent = sliders.perspective.value;
+    gauges.glitch.textContent = sliders.glitch.value;
+  }
+
+  Object.values(sliders).forEach(s => {
+    s.addEventListener("input", () => {
+      updateGauges();
+      render();
+    });
+  });
+
+  document.getElementById("reset").addEventListener("click", () => {
+    resetValues();
+    render();
+  });
+
+  document.getElementById("newImage").addEventListener("click", () => {
+    sourceImage = null;
+    sourceType = null;
+    sourceName = "";
+    editor.classList.remove("active");
+    landing.style.display = "flex";
+    canvas.style.display = "none";
+    emptyText.style.display = "block";
+    resetValues();
+  });
+
+  function clamp(v) {
+    return Math.max(0, Math.min(255, v));
+  }
+
+  function rgbToHsl(r, g, b) {
+    r /= 255; g /= 255; b /= 255;
+    const max = Math.max(r,g,b), min = Math.min(r,g,b);
+    let h = 0, s = 0;
+    const l = (max + min) / 2;
+    const d = max - min;
+
+    if (d !== 0) {
+      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+      switch(max) {
+        case r: h = (g-b)/d + (g < b ? 6 : 0); break;
+        case g: h = (b-r)/d + 2; break;
+        case b: h = (r-g)/d + 4; break;
+      }
+      h /= 6;
+    }
+    return [h,s,l];
+  }
+
+  function hue2rgb(p,q,t) {
+    if (t < 0) t += 1;
+    if (t > 1) t -= 1;
+    if (t < 1/6) return p + (q-p)*6*t;
+    if (t < 1/2) return q;
+    if (t < 2/3) return p + (q-p)*(2/3-t)*6;
+    return p;
+  }
+
+  function hslToRgb(h,s,l) {
+    let r,g,b;
+    if (s === 0) {
+      r = g = b = l;
+    } else {
+      const q = l < 0.5 ? l*(1+s) : l+s-l*s;
+      const p = 2*l-q;
+      r = hue2rgb(p,q,h+1/3);
+      g = hue2rgb(p,q,h);
+      b = hue2rgb(p,q,h-1/3);
+    }
+    return [r*255,g*255,b*255];
+  }
+
+  function applyBasicAdjustments(data, values) {
+    const saturation = Number(values.saturation) / 100;
+    const hueShift = Number(values.hue) / 360;
+    const temperature = Number(values.temperature);
+    const contrast = Number(values.contrast);
+    const brightness = Number(values.brightness);
+
+    const contrastFactor = (259 * (contrast + 255)) / (255 * (259 - contrast));
+
+    for (let i = 0; i < data.length; i += 4) {
+      let r = data[i], g = data[i+1], b = data[i+2];
+
+      let [h,s,l] = rgbToHsl(r,g,b);
+      s = Math.max(0, Math.min(1, s * saturation));
+      h = (h + hueShift) % 1;
+      if (h < 0) h += 1;
+      [r,g,b] = hslToRgb(h,s,l);
+
+      const t = temperature / 100;
+      r += 38 * t;
+      b -= 38 * t;
+      g += 9 * t;
+
+      r += brightness * 2.55;
+      g += brightness * 2.55;
+      b += brightness * 2.55;
+
+      r = contrastFactor * (r - 128) + 128;
+      g = contrastFactor * (g - 128) + 128;
+      b = contrastFactor * (b - 128) + 128;
+
+      data[i] = clamp(r);
+      data[i+1] = clamp(g);
+      data[i+2] = clamp(b);
+    }
+  }
+
+  function sharpen(data, width, height, amount) {
+    if (amount <= 0) return;
+    const src = new Uint8ClampedArray(data);
+    const a = amount / 100;
+    for (let y = 1; y < height - 1; y++) {
+      for (let x = 1; x < width - 1; x++) {
+        for (let c = 0; c < 3; c++) {
+          const idx = (y * width + x) * 4 + c;
+          const center = src[idx];
+          const neighbors =
+            src[((y-1)*width+x)*4+c] +
+            src[((y+1)*width+x)*4+c] +
+            src[(y*width+x-1)*4+c] +
+            src[(y*width+x+1)*4+c];
+          const blur = neighbors / 4;
+          data[idx] = clamp(center + (center - blur) * 1.6 * a);
+        }
+      }
+    }
+  }
+
+  // FIXED GEOMETRIC DISTORTION FUNCTION
+  function applyGeometricDistortions(w, h) {
+    const lensVal = Number(sliders.lensDistortion.value);
+    const fishVal = Number(sliders.fishEye.value);
+    const perspVal = Number(sliders.perspective.value);
+
+    if (lensVal <= 1 && fishVal <= 1 && perspVal <= 1) return;
+
+    const srcData = ctx.getImageData(0, 0, w, h);
+    const dstData = ctx.createImageData(w, h);
+    const src = srcData.data;
+    const dst = dstData.data;
+
+    const cx = w / 2;
+    const cy = h / 2;
+
+    const kLens = (lensVal - 1) * 0.015;
+    const kFish = (fishVal - 1) * 0.03;
+    const kPersp = (perspVal - 1) * 0.008;
+
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        let nx = (x - cx) / cx;
+        let ny = (y - cy) / cy;
+
+        // Apply Perspective
+        if (perspVal > 1) {
+          let pScale = 1 + ny * kPersp * 2;
+          nx /= Math.max(0.01, pScale);
+        }
+
+        let r = Math.sqrt(nx * nx + ny * ny);
+
+        // Apply Lens Distortion (Reverse mapping for stability)
+        if (lensVal > 1) {
+          let factor = 1 + kLens * (r * r);
+          nx *= factor;
+          ny *= factor;
+        }
+
+        // Apply Fish-Eye Distortion
+        if (fishVal > 1) {
+          if (r !== 0) {
+            let theta = Math.atan2(ny, nx);
+            let radius = Math.pow(r, 1 + kFish);
+            nx = radius * Math.cos(theta);
+            ny = radius * Math.sin(theta);
+          }
+        }
+
+        let srcX = Math.round(nx * cx + cx);
+        let srcY = Math.round(ny * cy + cy);
+
+        let dstIdx = (y * w + x) * 4;
+        if (srcX >= 0 && srcX < w && srcY >= 0 && srcY < h) {
+          let srcIdx = (srcY * w + srcX) * 4;
+          dst[dstIdx] = src[srcIdx];
+          dst[dstIdx+1] = src[srcIdx+1];
+          dst[dstIdx+2] = src[srcIdx+2];
+          dst[dstIdx+3] = src[srcIdx+3];
+        } else {
+          dst[dstIdx+3] = 0;
+        }
+      }
+    }
+    ctx.putImageData(dstData, 0, 0);
+  }
+
+  function applyMosaic(w, h, val) {
+    if (val <= 1) return;
+    const size = Math.floor(1 + (val / 100) * 49);
+    const imgData = ctx.getImageData(0, 0, w, h);
+    const data = imgData.data;
+
+    for (let y = 0; y < h; y += size) {
+      for (let x = 0; x < w; x += size) {
+        let r = 0, g = 0, b = 0, count = 0;
+        for (let dy = 0; dy < size && (y + dy) < h; dy++) {
+          for (let dx = 0; dx < size && (x + dx) < w; dx++) {
+            let idx = ((y + dy) * w + (x + dx)) * 4;
+            r += data[idx];
+            g += data[idx+1];
+            b += data[idx+2];
+            count++;
+          }
+        }
+        r = Math.round(r / count);
+        g = Math.round(g / count);
+        b = Math.round(b / count);
+
+        for (let dy = 0; dy < size && (y + dy) < h; dy++) {
+          for (let dx = 0; dx < size && (x + dx) < w; dx++) {
+            let idx = ((y + dy) * w + (x + dx)) * 4;
+            data[idx] = r;
+            data[idx+1] = g;
+            data[idx+2] = b;
+          }
+        }
+      }
+    }
+    ctx.putImageData(imgData, 0, 0);
+  }
+
+  function applyGlitch(w, h, val) {
+    if (val <= 1) return;
+    const imgData = ctx.getImageData(0, 0, w, h);
+    const data = imgData.data;
+    const numSlices = Math.floor((val / 100) * 30);
+    const maxOffset = Math.floor((val / 100) * (w * 0.15));
+
+    for (let i = 0; i < numSlices; i++) {
+      let sliceY = Math.floor(Math.random() * h);
+      let sliceH = Math.floor(Math.random() * 15) + 2;
+      let offset = (Math.random() > 0.5 ? 1 : -1) * Math.floor(Math.random() * maxOffset);
+
+      if (sliceY + sliceH > h) sliceH = h - sliceY;
+      let copy = new Uint8ClampedArray(sliceH * w * 4);
+
+      for (let y = 0; y < sliceH; y++) {
+        for (let x = 0; x < w; x++) {
+          let srcIdx = ((sliceY + y) * w + x) * 4;
+          let dstX = (x + offset + w) % w;
+          let dstIdx = (y * w + dstX) * 4;
+          copy[dstIdx] = data[srcIdx];
+          copy[dstIdx+1] = data[srcIdx+1];
+          copy[dstIdx+2] = data[srcIdx+2];
+          copy[dstIdx+3] = data[srcIdx+3];
+        }
+      }
+
+      for (let y = 0; y < sliceH; y++) {
+        let dstIdx = ((sliceY + y) * w) * 4;
+        let srcIdx = (y * w) * 4;
+        data.set(copy.subarray(srcIdx, srcIdx + w * 4), dstIdx);
+      }
+    }
+    ctx.putImageData(imgData, 0, 0);
+  }
+
+  function applyRGBSplit(w, h, val) {
+    if (val <= 1) return;
+    const imgData = ctx.getImageData(0, 0, w, h);
+    const src = new Uint8ClampedArray(imgData.data);
+    const dst = imgData.data;
+    const offset = Math.floor((val / 100) * (w * 0.05));
+
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        let idx = (y * w + x) * 4;
+        let rx = Math.min(w - 1, x + offset);
+        let bx = Math.max(0, x - offset);
+
+        dst[idx] = src[(y * w + rx) * 4];
+        dst[idx+1] = src[idx+1];
+        dst[idx+2] = src[(y * w + bx) * 4 + 2];
+      }
+    }
+    ctx.putImageData(imgData, 0, 0);
+  }
+
+  function applyEdgeDetect(w, h, val) {
+    if (val <= 1) return;
+    const imgData = ctx.getImageData(0, 0, w, h);
+    const src = new Uint8ClampedArray(imgData.data);
+    const dst = imgData.data;
+    const intensity = (val / 100) * 4;
+
+    for (let y = 1; y < h - 1; y++) {
+      for (let x = 1; x < w - 1; x++) {
+        for (let c = 0; c < 3; c++) {
+          let idx = (y * w + x) * 4 + c;
+          let gx =
+            -src[((y-1)*w + (x-1))*4 + c] + src[((y-1)*w + (x+1))*4 + c] +
+            -2*src[(y*w + (x-1))*4 + c]   + 2*src[(y*w + (x+1))*4 + c] +
+            -src[((y+1)*w + (x-1))*4 + c] + src[((y+1)*w + (x+1))*4 + c];
+
+          let gy =
+            -src[((y-1)*w + (x-1))*4 + c] - 2*src[((y-1)*w + x)*4 + c] - src[((y-1)*w + (x+1))*4 + c] +
+             src[((y+1)*w + (x-1))*4 + c] + 2*src[((y+1)*w + x)*4 + c] + src[((y+1)*w + (x+1))*4 + c];
+
+          let g = Math.sqrt(gx * gx + gy * gy) * intensity;
+          dst[idx] = clamp(g);
+        }
+      }
+    }
+    ctx.putImageData(imgData, 0, 0);
+  }
+
+  function applyDither(w, h, val) {
+    if (val <= 1) return;
+    const imgData = ctx.getImageData(0, 0, w, h);
+    const d = imgData.data;
+    const factor = 101 - val;
+
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        let idx = (y * w + x) * 4;
+        for (let c = 0; c < 3; c++) {
+          let oldP = d[idx + c];
+          let newP = Math.round((oldP / 255) * factor) * (255 / factor);
+          d[idx + c] = clamp(newP);
+          let err = oldP - newP;
+
+          if (x + 1 < w) d[idx + 4 + c] += err * (7 / 16);
+          if (x - 1 >= 0 && y + 1 < h) d[((y + 1) * w + (x - 1)) * 4 + c] += err * (3 / 16);
+          if (y + 1 < h) d[((y + 1) * w + x) * 4 + c] += err * (5 / 16);
+          if (x + 1 < w && y + 1 < h) d[((y + 1) * w + (x + 1)) * 4 + c] += err * (1 / 16);
+        }
+      }
+    }
+    ctx.putImageData(imgData, 0, 0);
+  }
+
+  function applyPixelManipulations(data) {
+    const postVal = Number(sliders.posterize.value);
+    const threshVal = Number(sliders.threshold.value);
+    const invVal = Number(sliders.invert.value);
+    const solVal = Number(sliders.solarize.value);
+
+    const invRatio = (invVal - 1) / 99;
+    const solThreshold = 255 * (1 - (solVal - 1) / 99);
+    const levels = Math.max(2, Math.floor(256 / Math.max(1, (postVal / 100) * 32)));
+
+    for (let i = 0; i < data.length; i += 4) {
+      let r = data[i], g = data[i+1], b = data[i+2];
+
+      if (postVal > 1) {
+        r = Math.floor(r / (256 / levels)) * (255 / (levels - 1));
+        g = Math.floor(g / (256 / levels)) * (255 / (levels - 1));
+        b = Math.floor(b / (256 / levels)) * (255 / (levels - 1));
+      }
+
+      if (solVal > 1) {
+        if (r > solThreshold) r = 255 - r;
+        if (g > solThreshold) g = 255 - g;
+        if (b > solThreshold) b = 255 - b;
+      }
+
+      if (invVal > 1) {
+        r = r * (1 - invRatio) + (255 - r) * invRatio;
+        g = g * (1 - invRatio) + (255 - g) * invRatio;
+        b = b * (1 - invRatio) + (255 - b) * invRatio;
+      }
+
+      if (threshVal > 1) {
+        let avg = (r + g + b) / 3;
+        let tLimit = 255 * (threshVal / 100);
+        let v = avg >= tLimit ? 255 : 0;
+        r = v; g = v; b = v;
+      }
+
+      data[i] = clamp(r);
+      data[i+1] = clamp(g);
+      data[i+2] = clamp(b);
+    }
+  }
+
+  function render() {
+    if (!sourceImage) return;
+
+    const w = canvas.width;
+    const h = canvas.height;
+
+    ctx.clearRect(0, 0, w, h);
+    ctx.drawImage(sourceImage, 0, 0);
+
+    applyGeometricDistortions(w, h);
+    applyMosaic(w, h, Number(sliders.mosaic.value));
+    applyGlitch(w, h, Number(sliders.glitch.value));
+
+    const imageData = ctx.getImageData(0, 0, w, h);
+    applyBasicAdjustments(imageData.data, {
+      saturation: sliders.saturation.value,
+      hue: sliders.hue.value,
+      temperature: sliders.temperature.value,
+      contrast: sliders.contrast.value,
+      brightness: sliders.brightness.value
+    });
+    sharpen(imageData.data, w, h, Number(sliders.sharpness.value));
+    applyPixelManipulations(imageData.data);
+    ctx.putImageData(imageData, 0, 0);
+
+    applyRGBSplit(w, h, Number(sliders.rgbSplit.value));
+    applyEdgeDetect(w, h, Number(sliders.edgeDetect.value));
+    applyDither(w, h, Number(sliders.dither.value));
+  }
+
+  document.getElementById("saveImage").addEventListener("click", () => {
+    if (!sourceImage) return;
+    canvas.toBlob(blob => {
+      if (!blob) {
+        showMessage("AIES could not create the JPEG on this device/browser.");
+        return;
+      }
+      const a = document.createElement("a");
+      const base = sourceName.replace(/\.(png|jpe?g)$/i, "") || "AIES_EDIT";
+      a.href = URL.createObjectURL(blob);
+      a.download = base + "_AIES.jpg";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    }, "image/jpeg", 0.95);
+  });
+})();
+</script>
+</body>
+</html>
